@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -43,7 +44,7 @@ def get_script_name(experiment):
 
 
 datasets = ['synthetic', 'celebA', 'cmnist', 'camelyon']
-model_dir = Path('/home/gridsan/hrzhang/results/expl_perf_drop/models')
+model_dir = Path('/tmp/results/expl_perf_drop/models')
 
 class train_model():
     fname = 'train_model'
@@ -230,13 +231,26 @@ class explain_janzing():
     fname = 'explain_janzing'
     def __init__(self):        
         models = {i: [] for i in datasets}
-
-        for i in model_dir.glob('**/done'):
-            args = json.load((i.parent/'args.json').open('rb'))
-            if args['dataset'] not in datasets:
-                continue
-            if args['exp_name'] == 'train_model':
-                models[args['dataset']].append(str(i.parent))
+        
+        # Add a default model directory for first run
+        default_model_dir = "/tmp/results"  # You can change this path
+        #os.makedirs(default_model_dir, exist_ok=True)
+        
+        try:
+            for i in model_dir.glob('**/done'):
+                args = json.load((i.parent/'args.json').open('rb'))
+                if args['dataset'] not in datasets:
+                    continue
+                if args['exp_name'] == 'train_model':
+                    models[args['dataset']].append(str(i.parent))
+        except Exception as e:
+            print(f"Warning: Could not find existing models: {e}")
+        
+        # Use default model directory if no models found
+        if not models['synthetic']:
+            models['synthetic'].append(default_model_dir)
+            print(f"No existing models found. Using default model directory: {default_model_dir}")
+     
 
         self.base_hparams = {
             'exp_name': ['explain_janzing'],

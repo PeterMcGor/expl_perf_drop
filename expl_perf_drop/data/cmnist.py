@@ -31,7 +31,7 @@ class CMNIST():
         self.data_seed = hparams['data_seed']
 
         root = Path(hparams['data_dir'])/'cmnist'
-        mnist = datasets.MNIST(root, train=True)       
+        mnist = datasets.MNIST(root, train=True, download=True)       
         self.X_src, self.y_src = mnist.data[:20000], mnist.targets[:20000]
         self.X_tar, self.y_tar = mnist.data[20000:40000], mnist.targets[20000:40000]
         self.test_pct = hparams['test_pct']

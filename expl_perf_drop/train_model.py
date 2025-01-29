@@ -24,7 +24,7 @@ parser.add_argument('--exp_name', type=str, help = 'Experiment name for downstre
 parser.add_argument('--output_dir', type=str, required = True)
 parser.add_argument('--dataset', type = str, choices = ['synthetic', 'celebA', 'cmnist', 'camelyon'], required = True)
 parser.add_argument('--emb_model', type = str, choices = ['resnet50', 'resnet18'], default = 'resnet18')
-parser.add_argument('--data_dir', type = str, default = '/home/gridsan/hrzhang/results/expl_perf_drop/data')
+parser.add_argument('--data_dir', type = str, default = 'data')
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--data_seed', type=int, default=0)
 parser.add_argument('--test_pct', type=float, default = 0.25)

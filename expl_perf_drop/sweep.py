@@ -54,7 +54,10 @@ class Job:
                         pass
                 
         self.command_str = ' '.join(command)
-        self.command_str = f'sbatch {slurm_pre} --wrap "{self.command_str}"' 
+        # Only wrap with sbatch if using slurm
+        if slurm_pre != "dummy":  # or you could pass in a flag to indicate if using slurm
+            self.command_str = f'sbatch {slurm_pre} --wrap "{self.command_str}"'
+        
         
         print(self.command_str)
         
@@ -100,13 +103,16 @@ class Job:
         launcher_fn(commands, *args, output_dirs = [job.output_dir if not jobs[0].no_output_dir else '' for job in jobs], **kwargs)
         print(f'Launched {len(jobs)} jobs!')
 
-    @staticmethod
-    def delete(jobs):
-        print('Deleting...')
+    @classmethod
+    def delete(cls, jobs):
         for job in jobs:
-            if not job.no_output_dir:
-                shutil.rmtree(job.output_dir)
-        print(f'Deleted {len(jobs)} jobs!')
+            try:
+                if os.path.exists(job.output_dir):
+                    shutil.rmtree(job.output_dir)
+                else:
+                    print(f"Warning: Directory not found: {job.output_dir}")
+            except Exception as e:
+                print(f"Warning: Could not delete directory {job.output_dir}: {e}")
         
 def ask_for_confirmation():
     response = input('Are you sure? (y/n) ')
@@ -127,10 +133,15 @@ if __name__ == "__main__":
     parser.add_argument('--max_slurm_jobs', type=int, default = 400)
     parser.add_argument('--no_output_dir', action = 'store_true')
     parser.add_argument('--restart_running', action='store_true', help = 'cancel and re-run all currently running Slurm jobs')
+    parser.add_argument('--dataset', type=str, default=None, choices=['synthetic', 'celebA', 'cmnist', 'camelyon'])
     args = parser.parse_args()        
     
     args_list = make_args_list(args.experiment)
+    if args.dataset is not None:
+        args_list = [a for a in args_list if a['dataset'] == args.dataset]
+    
     running_jobs_list = list(chain(*launchers.get_slurm_jobs(getpass.getuser()))) if args.command_launcher == 'slurm' else []
+   
 
     jobs = [Job(train_args, args.output_root, args.slurm_pre, experiments.get_script_name(args.experiment), args.no_output_dir,
         running_jobs_list) for train_args in args_list]

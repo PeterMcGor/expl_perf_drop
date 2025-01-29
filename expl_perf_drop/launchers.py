@@ -6,7 +6,15 @@ import time
 from pathlib import Path
 import os
 
-def local_launcher(commands):
+def local_launcher(commands, output_dirs=None, **kwargs):
+    """
+    Launch commands locally.
+    
+    Args:
+        commands: List of commands to execute
+        output_dirs: List of output directories (optional)
+        **kwargs: Additional keyword arguments
+    """
     for cmd in commands:
         subprocess.call(cmd, shell=True)
                 

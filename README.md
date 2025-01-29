@@ -30,6 +30,12 @@ conda env create -f environment.yml
 conda activate expl_perf_drop
 ```
 
+### Pedro's changes
+So far I did this because the other shit does not work
+``` 
+conda create -n expl_perf_drop -c conda-forge python=3.7 numpy=1.19.5 pandas=1.1.5 scipy=1.5.3 scikit-learn=0.24.1 matplotlib=3.3.4 tqdm=4.54.0 imbalanced-learn=0.8.0 xgboost   
+```
+
 To reproduce the experiments in the paper which involve training grids of models and then generating explanations for them, use `sweep.py` as follows:
 
 ```

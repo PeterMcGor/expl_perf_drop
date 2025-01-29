@@ -190,7 +190,7 @@ class CGExplainerDR(CGExplainer):
             if self.clip_prob_thres is not None:
                 prob = np.clip(prob, 1-self.clip_prob_thres, self.clip_prob_thres)
 
-            ratio = prob[:,1]/prob[:,0]
+            ratio = prob[:,1]/prob[:,0] # Prob of discriminating the target for teach specific sample / Prob. of discriminating the source for each specific sample
             return ratio
 
         pred_proba = clf.predict_proba(X)[:, 1]
@@ -215,6 +215,9 @@ class CGExplainerDR(CGExplainer):
                                          self.target_train_df[self._map_node_to_feat_names(list(nodes))].values)
 
     def _train_weight_models(self, extra_models = []):
+        """
+        Here is where discriminators for importance sampling are trained for each subset of distributions
+        """
         if self.density_estimator == 'proba':
             density_ratio_fn = self._density_ratio_proba
         elif self.density_estimator == 'kliep':
@@ -261,7 +264,7 @@ class CGExplainerDR(CGExplainer):
     def _delta(self, S, model, metric, source_metric = None, return_weights = False, use_cache = True):
         if use_cache and frozenset(S) in self.cache['deltas']:
             return self.cache['deltas'][frozenset(S)]
-
+        print("_delta", S)
         n_source = self.source_eval_df.shape[0]
         n_target = self.target_eval_df.shape[0]
         weight = np.ones((n_source,)) 
@@ -287,8 +290,8 @@ class CGExplainerDR(CGExplainer):
 
         if source_metric is None:
             source_metric = metric(model, self.source_eval_df, self.subset_features, target_name = self.target_name)
-
-        target_metric = metric(model, self.source_eval_df, self.subset_features, weight, target_name = self.target_name)
+        print("Features subset", self.subset_features, "weights", weight)
+        target_metric = metric(model, self.source_eval_df, self.subset_features, weight, target_name = self.target_name) # Eq- 4
         delta = target_metric - source_metric
         
         if self.imp_weight_type == 'normal':

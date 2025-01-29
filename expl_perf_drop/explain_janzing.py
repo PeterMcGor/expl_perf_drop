@@ -94,7 +94,7 @@ target_train_df, target_eval_df = data.get_target_train_test(hparams)
 source_df = pd.concat((source_train_df, source_eval_df), ignore_index = True)
 target_df = pd.concat((target_train_df, target_eval_df), ignore_index = True)
 
-# source_df['Y'] = source_df['Y'].astype(str)
+source_df['Y'] = source_df['Y'].astype(str)
 # target_df['Y'] = target_df['Y'].astype(str)
 
 cont_model = SklearnRegressionModel(model_select(args.weight_model, 'regression'))

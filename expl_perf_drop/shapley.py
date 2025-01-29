@@ -507,6 +507,7 @@ def _evaluate_set_function(
     for (subset, result) in zip(evaluation_subsets, subset_results):
         subset_to_result_map[subset] = result
 
+    print(f"Finished evaluating {len(subset_to_result_map)} subsets.", subset_to_result_map)
     return subset_to_result_map
 
 
