@@ -24,12 +24,19 @@ class TorchModel(nn.Module):
         self.debug = model_hparams['debug']
 
     def fit(self, X, y, weights = None):
+        self.to(self.device)
         if isinstance(X, pd.DataFrame):
             X = X.values
         if isinstance(y, pd.Series):
             y = y.values
+           
+        # Convert to torch tensors and move to correct device immediately
+        X = torch.tensor(X, dtype=torch.float32, device=self.device)
+        y = torch.tensor(y, dtype=torch.float32, device=self.device)
+        
+      
         if weights is None:
-            train_ds = TensorDataset(torch.tensor(X), torch.tensor(y).unsqueeze(-1), torch.ones((len(y), 1)))
+            train_ds = TensorDataset(torch.tensor(X), torch.tensor(y).unsqueeze(-1), torch.ones((len(y), 1), device=self.device))
         else:
             train_ds = TensorDataset(torch.tensor(X), torch.tensor(y).unsqueeze(-1), weights)
         train_loader = DataLoader(train_ds, batch_size = self.batch_size, shuffle = True)

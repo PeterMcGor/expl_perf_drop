@@ -2,5 +2,7 @@ name: expl_perf_drop
 dependencies:
 - python=3.8
 - pip
+- graphviz
+- python-graphviz
 - pip:
     - -r requirements.txt
