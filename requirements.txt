@@ -15,5 +15,6 @@ ipykernel
 #dowhy
 #git+https://github.com/py-why/dowhy@ead8d47
 git+https://github.com/py-why/dowhy@ead8d47#egg=dowhy
-
+future >= 0.18
+gdown
 

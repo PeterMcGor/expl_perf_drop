@@ -13,6 +13,9 @@ from sklearn.calibration import CalibratedClassifierCV
 from expl_perf_drop.shapley import estimate_shapley_values, ShapleyApproximationMethods, ShapleyConfig
 from expl_perf_drop.KLIEP import DensityRatioEstimator
 
+from expl_perf_drop.torch_utils import TorchModelWrapper
+from expl_perf_drop.models import TorchModel
+
 factorial = np.math.factorial
 
 class CGExplainer():
@@ -179,8 +182,20 @@ class CGExplainerDR(CGExplainer):
         
     def _density_ratio_proba(self, source, target):
         X, Y = df_to_domain(source, target)
-        clf = clone(self.model_type_dis).fit(X, Y)
-        best_score = clf.best_score_
+        
+        if isinstance(self.model_type_dis, TorchModel):
+            # For PyTorch models, use the wrapper's clone
+            #clf = self.model_type_dis.__sklearn_clone__().fit(X, Y)
+            model  = self.model_type_dis.get_new_instance(X=X) 
+            clf = model.fit(X, Y)
+            best_score = None  # PyTorch models might not have this attribute
+        else:
+            # Original sklearn behavior
+            clf = clone(self.model_type_dis).fit(X, Y)
+            best_score = getattr(clf, 'best_score_', None)
+
+        #clf = clone(self.model_type_dis).fit(X, Y)
+        #best_score = clf.best_score_
 
         if self.calibrate_weight_models:
             clf = CalibratedClassifierCV(base_estimator = clf, method = 'isotonic', cv = 'prefit').fit(X, Y)
@@ -189,8 +204,14 @@ class CGExplainerDR(CGExplainer):
             prob = clf.predict_proba(x)
             if self.clip_prob_thres is not None:
                 prob = np.clip(prob, 1-self.clip_prob_thres, self.clip_prob_thres)
-
             ratio = prob[:,1]/prob[:,0] # Prob of discriminating the target for teach specific sample / Prob. of discriminating the source for each specific sample
+            
+            zero_indices = np.where(prob[:,0] == 0)[0]
+            if len(zero_indices) > 0:
+                print("At indices", zero_indices[:10], "..." if len(zero_indices) > 10 else "")
+                print("Numerator values:", prob[:,1][zero_indices[:10]])
+                print("Denominator values:", prob[:,0][zero_indices[:10]])
+
             return ratio
 
         pred_proba = clf.predict_proba(X)[:, 1]
@@ -264,7 +285,6 @@ class CGExplainerDR(CGExplainer):
     def _delta(self, S, model, metric, source_metric = None, return_weights = False, use_cache = True):
         if use_cache and frozenset(S) in self.cache['deltas']:
             return self.cache['deltas'][frozenset(S)]
-        print("_delta", S)
         n_source = self.source_eval_df.shape[0]
         n_target = self.target_eval_df.shape[0]
         weight = np.ones((n_source,)) 
@@ -290,7 +310,7 @@ class CGExplainerDR(CGExplainer):
 
         if source_metric is None:
             source_metric = metric(model, self.source_eval_df, self.subset_features, target_name = self.target_name)
-        print("Features subset", self.subset_features, "weights", weight)
+        #print("Features subset", self.subset_features, "weights", weight)
         target_metric = metric(model, self.source_eval_df, self.subset_features, weight, target_name = self.target_name) # Eq- 4
         delta = target_metric - source_metric
         

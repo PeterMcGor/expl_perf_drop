@@ -1,4 +1,4 @@
-
+from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression, Ridge
@@ -22,6 +22,18 @@ class TorchModel(nn.Module):
         self.n_epochs = model_hparams['n_epochs']
         self.device = device 
         self.debug = model_hparams['debug']
+    
+
+    @abstractmethod
+    def get_new_instance(self, X=None, y=None):
+        """
+        Returns a new untrained model with architecture adapted to X, y if provided.
+        
+        Args:
+            X: Optional input data to adapt the architecture
+            y: Optional output data to adapt the architecture
+        """
+        pass
 
     def fit(self, X, y, weights = None):
         self.to(self.device)
@@ -82,14 +94,45 @@ class TorchModel(nn.Module):
 
 class MLP(TorchModel):
     def __init__(self, n_inputs, n_outputs, model_hparams, device):
-        super(MLP, self).__init__(model_hparams, device)
-        self.input = nn.Linear(n_inputs, model_hparams['mlp_width'])
-        self.dropout = nn.Dropout(model_hparams['mlp_dropout'])
+        super().__init__(model_hparams, device)
+        self._n_inputs = n_inputs
+        self._n_outputs = n_outputs
+        self.model_hparams = model_hparams
+        self._build_network()
+    
+    @property
+    def n_inputs(self):
+        return self._n_inputs
+    
+    @property
+    def n_outputs(self):
+        return self._n_outputs
+    
+    def get_new_instance(self, X=None, y=None):
+        n_inputs = X.shape[1] if X is not None else self.n_inputs
+        n_outputs = len(np.unique(y)) if y is not None else self.n_outputs
+        
+        return MLP(
+            n_inputs=n_inputs,
+            n_outputs=n_outputs,
+            model_hparams=self.model_hparams,
+            device=self.device
+        )
+        
+    
+    def _build_network(self):
+        """Build the network layers."""
+        self.input = nn.Linear(self.n_inputs, self.model_hparams['mlp_width'])
+        self.dropout = nn.Dropout(self.model_hparams['mlp_dropout'])
         self.hiddens = nn.ModuleList([
-            nn.Linear(model_hparams['mlp_width'],model_hparams['mlp_width'])
-            for _ in range(model_hparams['mlp_depth']-2)])
-        self.output = nn.Linear(model_hparams['mlp_width'], n_outputs)
-        self.n_outputs = n_outputs
+            nn.Linear(self.model_hparams['mlp_width'], self.model_hparams['mlp_width'])
+            for _ in range(self.model_hparams['mlp_depth']-2)
+        ])
+        self.output = nn.Linear(self.model_hparams['mlp_width'], self.n_outputs)
+
+    def fit(self, X, y, weights=None):
+        assert X.shape[1] == self.n_inputs, f"Expected {self.n_inputs} input features, got {X.shape[1]}"
+        return super().fit(X, y, weights)
 
     def forward(self, x):
         x = self.input(x)
